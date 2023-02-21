@@ -1,0 +1,37 @@
+version: "3.8"
+services:
+  vault-server:
+    build: ./vault-server
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_FORMAT: "json"
+    cap_add:
+      - IPC_LOCK
+    networks:
+      vault-network:
+        aliases:
+          - vault-server
+  vault-unseal:
+    build: ./vault-unseal
+    environment:
+      VAULT_ADDR: "http://vault-server:8200"
+    depends_on:
+      - vault-server
+    networks:
+      vault-network:
+        aliases:
+          - vault-client
+  vault-client:
+    image: vault:latest
+    environment:
+      VAULT_ADDR: "http://vault-server:8200"
+      VAULT_FORMAT: "json"
+    networks:
+      vault-network:
+        aliases:
+          - vault-client
+    command: tail -F anything # waits forever
+networks:
+  vault-network:
