@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-kms-setup-config
+  namespace: vault
+data:
+  setup.sh: |
+    #!/bin/sh
+    
+    apk add jq
+    vault status
+    
+    VAULT_INIT=$(vault operator init)
+
+    vault operator unseal $(echo $VAULT_INIT | jq .)
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-kms-setup
+  namespace: vault
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+      - name: vault
+        image: vault:latest
+        command: ["/bin/sh"]
+        args: ["/run/scripts/setup.sh"]
+        env:
+        - name: VAULT_ADDR
+          value: "http://vault-kms:8200"
+        - name: VAULT_FORMAT
+          value: "json"
+        volumeMounts:
+        - name: config
+          mountPath: "/run/scripts"
+      restartPolicy: Never
+      volumes:
+      - name: config
+        configMap:
+          name: vault-kms-setup-config
+          items:
+          - key: "setup.sh"
+            path: "setup.sh"
+  backoffLimit: 10
