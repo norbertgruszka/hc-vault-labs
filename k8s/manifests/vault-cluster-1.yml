@@ -8,31 +8,33 @@ data:
   vault.hcl: |
     ui = true
 
-    ha_storage "raft" {
+    storage "raft" {
       path    = "/raft"
       node_id = "vault-cluster-1"
+      tls_skip_verify = "true" 
 
       retry_join {
         leader_api_addr = "http://vault-cluster-0-service.vault.svc.cluster.local:8200"
       }
-    }
-    
-    storage "file" {
-      path = "/home/vault/data"
+
+      retry_join {
+        leader_api_addr = "http://vault-cluster-2-service.vault.svc.cluster.local:8200"
+      }
     }
 
     seal "transit" {
-       address            = "http://vault-kms-service.vault.svc.cluster.local:8200"
-       disable_renewal    = "false"
-       key_name           = "vault_1"
-       mount_path         = "transit/"
-       tls_skip_verify    = "true"
+      address            = "http://vault-kms-service.vault.svc.cluster.local:8200"
+      disable_renewal    = "false"
+      key_name           = "vault_0"
+      mount_path         = "transit/"
+      tls_skip_verify    = "true"
     }
 
     listener "tcp" {
       address = "0.0.0.0:8200"
       cluster_address = "0.0.0.0:8200"
-      tls_disable = 1
+      tls_disable = true
+      tls_disable_client_certs = true
     }
 
     cluster_addr = "http://vault-cluster-1-service.vault.svc.cluster.local:8201"

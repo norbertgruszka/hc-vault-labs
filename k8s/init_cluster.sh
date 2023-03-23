@@ -32,9 +32,4 @@ kubectl --context kind-vault-lab apply -f ./manifests/service-account.yml
 
 ./scripts/kms_init.sh
 ./scripts/kms_transit.sh
-
 ./scripts/vault-0_init.sh
-
-./scripts/vault-1_init.sh
-
-# ./scripts/vault-2_init.sh

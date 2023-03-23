@@ -11,20 +11,21 @@ data:
     storage "raft" {
       path    = "/raft"
       node_id = "vault-cluster-2"
+      tls_skip_verify = "true" 
 
       retry_join {
-        auto_join = "provider=k8s label_selector=\"hc-cluster = vault\" namespace = \"vault\""
+        leader_api_addr = "http://vault-cluster-0-service.vault.svc.cluster.local:8200"
       }
 
-      # retry_join {
-      #   leader_api_addr = "http://vault-cluster-0-service.vault.svc.cluster.local:8200"
-      # }
+      retry_join {
+        leader_api_addr = "http://vault-cluster-1-service.vault.svc.cluster.local:8200"
+      }
     }
 
     seal "transit" {
       address            = "http://vault-kms-service.vault.svc.cluster.local:8200"
       disable_renewal    = "false"
-      key_name           = "vault_2"
+      key_name           = "vault_0"
       mount_path         = "transit/"
       tls_skip_verify    = "true"
     }
@@ -32,11 +33,12 @@ data:
     listener "tcp" {
       address = "0.0.0.0:8200"
       cluster_address = "0.0.0.0:8200"
-      tls_disable = 1
+      tls_disable = true
+      tls_disable_client_certs = true
     }
 
-    cluster_addr = "http://127.0.0.1:8201"
-    api_addr = "http://127.0.0.1:8200"
+    cluster_addr = "http://vault-cluster-2-service.vault.svc.cluster.local:8201"
+    api_addr = "http://vault-cluster-2-service.vault.svc.cluster.local:8200"
 ---
 apiVersion: apps/v1
 kind: Deployment

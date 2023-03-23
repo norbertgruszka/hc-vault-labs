@@ -1,7 +1,7 @@
-path "transit/encrypt/vault_0" {
+path "transit/encrypt/*" {
    capabilities = [ "update" ]
 }
 
-path "transit/decrypt/vault_0" {
+path "transit/decrypt/*" {
    capabilities = [ "update" ]
 }
