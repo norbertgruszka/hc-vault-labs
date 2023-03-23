@@ -27,19 +27,9 @@ kubectl wait --namespace ingress-nginx \
 # Create Namespaces
 kubectl --context kind-vault-lab apply -f ./manifests/namespace.yml
 
-# Create KMS Vault
-kubectl --context kind-vault-lab apply -f ./manifests/vault-kms.yml
-echo "Waiting for KMS Vault to start..."
-kubectl wait --namespace vault \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/name=vault-kms \
-  --timeout=90s
+# Create Service Accunt
+kubectl --context kind-vault-lab apply -f ./manifests/service-account.yml
 
-./scripts/init_kms.sh
-
-# Create vault-cluster-0 Vault
-kubectl --context kind-vault-lab apply -f ./manifests/vault-cluster-0.yml
-# Create vault-cluster-1 Vault
-kubectl --context kind-vault-lab apply -f ./manifests/vault-cluster-1.yml
-# Create vault-cluster-2 Vault
-kubectl --context kind-vault-lab apply -f ./manifests/vault-cluster-2.yml
+./scripts/kms_init.sh
+./scripts/kms_transit.sh
+./scripts/vault-0_init.sh

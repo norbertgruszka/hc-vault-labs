@@ -8,16 +8,36 @@ data:
   vault.hcl: |
     ui = true
 
-    storage "file" {
-      path = "/home/vault/data"
+    storage "raft" {  
+      path    = "/raft"
+      node_id = "vault-cluster-0"
+      tls_skip_verify = "true" 
+
+      retry_join {
+        leader_api_addr = "http://vault-cluster-1-service.vault.svc.cluster.local:8200"
+      }
+
+      retry_join {
+        leader_api_addr = "http://vault-cluster-2-service.vault.svc.cluster.local:8200"
+      }
     }
 
+    seal "transit" {
+       address            = "http://vault-kms-service.vault.svc.cluster.local:8200"
+       disable_renewal    = "false"
+       key_name           = "vault_0"
+       mount_path         = "transit/"
+       tls_skip_verify    = "true"
+    }
 
     listener "tcp" {
       address = "0.0.0.0:8200"
       cluster_address = "0.0.0.0:8200"
       tls_disable = 1
     }
+
+    cluster_addr = "http://vault-cluster-0-service.vault.svc.cluster.local:8201"
+    api_addr = "http://vault-cluster-0-service.vault.svc.cluster.local:8200"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,6 +46,7 @@ metadata:
   namespace: vault
   labels:
     app.kubernetes.io/name: vault-cluster-0
+    hc-cluster: vault
 spec:
   replicas: 1
   selector:
@@ -36,26 +57,33 @@ spec:
       labels:
         app.kubernetes.io/name: vault-cluster-0
     spec:
+      serviceAccountName: vault-serviceaccount
       containers:
       - name: vault
         image: vault:latest
         command: ["vault"]
-        args: ["server", "-config", "/etc/vault.d/vault.hcl", "-config", "/etc/vault.d/transit.hcl"]
+        args: ["server", "-config", "/etc/vault.d/vault.hcl"]
         ports:
         - containerPort: 8200
-          name: api
+          name: api-addr
+        - containerPort: 8201
+          name: cluster-addr
         volumeMounts:
         - name: config
           mountPath: "/etc/vault.d/vault.hcl"
           readOnly: true
-        - name: transit
-          mountPath: "/etc/vault.d/transit.hcl"
-          readOnly: true
+        - name: raft
+          mountPath: "/raft"
         env:
         - name: VAULT_ADDR
           value: "http://0.0.0.0:8200"
         - name: VAULT_DISABLE_MLOCK
           value: "true"
+        - name: VAULT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vault-cluster-0-unseal-token
+              key: token
       volumes:
       - name: config
         configMap:
@@ -63,12 +91,9 @@ spec:
           items:
           - key: "vault.hcl"
             path: "vault.hcl"
-      - name: transit
-        configMap:
-          name: vault-cluster-0-transit-config
-          items:
-          - key: "transit.hcl"
-            path: "transit.hcl"
+      - name: raft
+        emptyDir:
+          sizeLimit: 500Mi
 ---
 apiVersion: v1
 kind: Service
@@ -80,7 +105,11 @@ spec:
     app.kubernetes.io/name: vault-cluster-0
   type: LoadBalancer
   ports:
-    - name: api-service
+    - name: api-addr
       protocol: TCP
       port: 8200
-      targetPort: api
+      targetPort: api-addr
+    - name: cluster-addr
+      protocol: TCP
+      port: 8201
+      targetPort: cluster-addr
