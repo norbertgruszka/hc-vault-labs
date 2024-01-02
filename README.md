@@ -83,7 +83,7 @@ Example commands to generate single certificate manually.
 ```bash
 openssl genrsa -out vault-kms.key
 openssl req -new -key vault-kms.key -out vault-kms.csr -config vault-kms.conf
-openssl x509 -req -days 365 -in vault-kms.csr -signkey vault-kms.key -out vault-kms.crt -extensions req_ext -extfile vault-kms.conf
+openssl x509 -req -days 365 -in vault-kms.csr -signkey vault-kms.key -out vault-kms.crt -CA ca-cert.pem -CAkey ca-key.pem -extensions req_ext -extfile vault-kms.conf
 ```
 
 To generate certs for all Vault instances, run `certs/generate.sh` script.
@@ -93,3 +93,31 @@ Verify certificate with:
 ```bash
 openssl x509 -in vault-kms.crt -noout -text
 ```
+
+## Deploy Vault Client
+
+TODO
+
+## Deploy Ops Vault
+
+This instance of Vault is responsible for providing KMS keys, which are later used for auto-unsealing main Vault cluster.
+
+Create new namespace
+
+```bash
+kubectl create namespace vault-ops
+```
+
+Add TLS Certificate
+
+```bash
+kubectl create secret tls vault-tls --namespace vault-ops --key ./certs/vault-ops.key --cert ./certs/vault-ops.crt
+```
+
+Deploy Vault instance
+
+```bash
+kubectl apply -f ./manifests/vault-ops.yml
+```
+
+Initi Vault - TODO
