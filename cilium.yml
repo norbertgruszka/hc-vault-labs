@@ -1,0 +1,23 @@
+---
+hubble:
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+kubeProxyReplacement: "true"
+
+k8sServiceHost: "hcp-vault-lab-control-plane"
+k8sServicePort: 6443
+
+l2announcements:
+  enabled: true
+
+# devices: {eth0, net0}
+# externalIPs:
+#   enabled: true
+
+# prometheus:
+#   enabled: true
+#   serviceMonitor:
+#     enabled: true
